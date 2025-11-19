@@ -1,24 +1,18 @@
 import SwiftUI
-import Combine
-
-class ForYouViewModel: ObservableObject {
-    @Published var suggestions: [PromptSuggestion] = []
-    @Published var isLoading = false
-    
-    func loadSuggestions() async {
-        isLoading = true
-        let fetchedSuggestions = await MockDataService.shared.fetchSuggestions()
-        await MainActor.run {
-            self.suggestions = fetchedSuggestions
-            self.isLoading = false
-        }
-    }
-}
 
 struct ForYouView: View {
-    @StateObject private var viewModel = ForYouViewModel()
+    @StateObject private var viewModel: ForYouViewModel
     @State private var showProfile = false
     let onPromptSelected: (String) -> Void
+    
+    // MARK: - Initialization
+    init(
+        dataService: DataServiceProtocol = MockDataService(),
+        onPromptSelected: @escaping (String) -> Void
+    ) {
+        _viewModel = StateObject(wrappedValue: ForYouViewModel(dataService: dataService))
+        self.onPromptSelected = onPromptSelected
+    }
     
     var body: some View {
         NavigationStack {
@@ -65,6 +59,28 @@ struct ForYouView: View {
             .overlay {
                 if viewModel.isLoading && viewModel.suggestions.isEmpty {
                     ProgressView()
+                }
+            }
+            .overlay {
+                if let errorMessage = viewModel.errorMessage {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.orange)
+                        
+                        Text(errorMessage)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                        
+                        Button("Try Again") {
+                            Task {
+                                await viewModel.loadSuggestions()
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding()
                 }
             }
             .sheet(isPresented: $showProfile) {

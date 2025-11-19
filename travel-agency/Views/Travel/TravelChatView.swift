@@ -1,8 +1,8 @@
 import SwiftUI
 
+/// Travel chat assistant view with AI-powered trip planning
 struct TravelChatView: View {
-    @State private var messageText = ""
-    @State private var messages: [ChatMessage] = []
+    @StateObject private var viewModel = TravelChatViewModel()
     @Binding var initialPrompt: String?
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isTextFieldFocused: Bool
@@ -13,7 +13,7 @@ struct TravelChatView: View {
                 // Messages area
                 GeometryReader { geometry in
                     ScrollView {
-                        if messages.isEmpty {
+                        if viewModel.messages.isEmpty {
                             // Centered empty state
                             VStack(spacing: 20) {
                                 Image(systemName: "airplane.departure")
@@ -31,7 +31,7 @@ struct TravelChatView: View {
                             .frame(width: geometry.size.width, height: geometry.size.height)
                         } else {
                             LazyVStack(spacing: 16) {
-                                ForEach(messages) { message in
+                                ForEach(viewModel.messages) { message in
                                     ChatBubbleView(message: message)
                                 }
                             }
@@ -43,7 +43,7 @@ struct TravelChatView: View {
                 
                 // Chat input bar
                 HStack(spacing: 12) {
-                    TextField("Message your AI travel assistant...", text: $messageText)
+                    TextField("Message your AI travel assistant...", text: $viewModel.messageText)
                         .textFieldStyle(.plain)
                         .padding(12)
                         .background(Color.gray.opacity(0.1))
@@ -51,11 +51,11 @@ struct TravelChatView: View {
                         .submitLabel(.send)
                         .focused($isTextFieldFocused)
                         .onSubmit {
-                            sendMessage()
+                            viewModel.sendMessage(viewModel.messageText)
                         }
                     
-                    if !messageText.isEmpty {
-                        Button(action: sendMessage) {
+                    if !viewModel.messageText.isEmpty {
+                        Button(action: { viewModel.sendMessage(viewModel.messageText) }) {
                             Image(systemName: "arrow.up.circle.fill")
                                 .font(.system(size: 32))
                                 .foregroundColor(.blue)
@@ -65,7 +65,7 @@ struct TravelChatView: View {
                 }
                 .padding()
                 .background(.ultraThinMaterial)
-                .animation(.spring(response: 0.3), value: messageText.isEmpty)
+                .animation(.spring(response: 0.3), value: viewModel.messageText.isEmpty)
             }
             .navigationTitle("AI Travel Assistant")
             .navigationBarTitleDisplayMode(.inline)
@@ -80,64 +80,13 @@ struct TravelChatView: View {
                 }
             }
             .onAppear {
-                // Handle initial prompt if set before view appears
-                if let prompt = initialPrompt {
-                    messageText = prompt
-                    sendMessage()
-                    initialPrompt = nil
-                }
+                viewModel.handleInitialPrompt(initialPrompt)
+                initialPrompt = nil
             }
             .onChange(of: initialPrompt) { _, newPrompt in
-                if let prompt = newPrompt {
-                    messageText = prompt
-                    sendMessage()
-                    initialPrompt = nil  // Clear after sending
-                }
+                viewModel.handleInitialPrompt(newPrompt)
+                initialPrompt = nil
             }
-        }
-    }
-    
-    private func sendMessage() {
-        guard !messageText.isEmpty else { return }
-        
-        let userMessage = ChatMessage(text: messageText, isUser: true)
-        messages.append(userMessage)
-        
-        let query = messageText
-        messageText = ""
-        
-        // Simulate AI response
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            let aiResponse = ChatMessage(
-                text: "I'd be happy to help you plan a trip! Based on '\(query)', here are some suggestions...",
-                isUser: false
-            )
-            messages.append(aiResponse)
-        }
-    }
-}
-
-struct ChatMessage: Identifiable {
-    let id = UUID()
-    let text: String
-    let isUser: Bool
-}
-
-struct ChatBubbleView: View {
-    let message: ChatMessage
-    
-    var body: some View {
-        HStack {
-            if message.isUser { Spacer() }
-            
-            Text(message.text)
-                .padding(12)
-                .background(message.isUser ? Color.blue : Color.gray.opacity(0.2))
-                .foregroundColor(message.isUser ? .white : .primary)
-                .cornerRadius(16)
-                .frame(maxWidth: 280, alignment: message.isUser ? .trailing : .leading)
-            
-            if !message.isUser { Spacer() }
         }
     }
 }

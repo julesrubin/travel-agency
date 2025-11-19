@@ -1,13 +1,13 @@
 import Foundation
 
-class MockDataService {
-    static let shared = MockDataService()
+/// Mock implementation of DataServiceProtocol for development and testing
+/// Provides hardcoded data without requiring a real backend
+class MockDataService: DataServiceProtocol {
     
-    private init() {}
-    
-    func fetchSuggestions() async -> [PromptSuggestion] {
+    /// Fetches mock travel suggestions with simulated network delay
+    func fetchSuggestions() async throws -> [PromptSuggestion] {
         // Simulate network delay
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try await Task.sleep(nanoseconds: 500_000_000)
         
         return [
             PromptSuggestion(
@@ -93,8 +93,9 @@ class MockDataService {
         ]
     }
     
-    func searchTrips(query: String) async -> [Trip] {
-        try? await Task.sleep(nanoseconds: 300_000_000)
+    /// Searches for trips matching the query with simulated network delay
+    func searchTrips(query: String) async throws -> [Trip] {
+        try await Task.sleep(nanoseconds: 300_000_000)
         
         let allTrips = [
             Trip(

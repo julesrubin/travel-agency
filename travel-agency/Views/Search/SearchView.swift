@@ -5,19 +5,35 @@ class SearchViewModel: ObservableObject {
     @Published var searchQuery = ""
     @Published var trips: [Trip] = []
     @Published var isLoading = false
+    private let dataService: DataServiceProtocol
+    
+    init(dataService: DataServiceProtocol = MockDataService()) {
+        self.dataService = dataService
+    }
     
     func search() async {
         isLoading = true
-        let results = await MockDataService.shared.searchTrips(query: searchQuery)
-        await MainActor.run {
-            self.trips = results
-            self.isLoading = false
+        do {
+            let results = try await dataService.searchTrips(query: searchQuery)
+            await MainActor.run {
+                self.trips = results
+                self.isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                self.trips = []
+                self.isLoading = false
+            }
         }
     }
 }
 
 struct SearchView: View {
-    @StateObject private var viewModel = SearchViewModel()
+    @StateObject private var viewModel: SearchViewModel
+    
+    init(dataService: DataServiceProtocol = MockDataService()) {
+        _viewModel = StateObject(wrappedValue: SearchViewModel(dataService: dataService))
+    }
     
     var body: some View {
         NavigationStack {
