@@ -79,6 +79,14 @@ struct TravelChatView: View {
                     }
                 }
             }
+            .onAppear {
+                // Handle initial prompt if set before view appears
+                if let prompt = initialPrompt {
+                    messageText = prompt
+                    sendMessage()
+                    initialPrompt = nil
+                }
+            }
             .onChange(of: initialPrompt) { _, newPrompt in
                 if let prompt = newPrompt {
                     messageText = prompt

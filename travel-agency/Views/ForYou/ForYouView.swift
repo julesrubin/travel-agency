@@ -35,8 +35,9 @@ struct ForYouView: View {
                                         .scaleEffect(phase.isIdentity ? 1 : 0.95)
                                 }
                                 .onTapGesture {
-                                    // Send prompt to AI chat
-                                    onPromptSelected(suggestion.title)
+                                    // Send prompt to AI chat with full context
+                                    let fullPrompt = "I'm interested in: \(suggestion.title) - \(suggestion.description)"
+                                    onPromptSelected(fullPrompt)
                                 }
                         }
                     }
