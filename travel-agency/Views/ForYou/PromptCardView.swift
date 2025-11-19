@@ -29,44 +29,43 @@ struct PromptCardView: View {
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            // Background image area with gradient
+            // Background image area with gradient - full card
             destinationGradient
-                .frame(height: 250)
                 .overlay(
                     // Simulated destination imagery - centered and more visible
                     Image(systemName: iconForSuggestion)
-                        .font(.system(size: 80))
+                        .font(.system(size: 100))
                         .foregroundColor(.white.opacity(0.4))
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: 24))
             
             // Glass effect info card overlaying the bottom
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text(suggestion.title)
-                    .font(.title2)
+                    .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundStyle(.primary)
                 
                 Text(suggestion.description)
-                    .font(.subheadline)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
                 
                 HStack {
                     Image(systemName: "airplane.departure")
-                        .font(.caption)
-                    Text("Explore now")
-                        .font(.caption)
+                        .font(.body)
+                    Text("Tap to explore with AI")
+                        .font(.body)
                         .fontWeight(.medium)
                 }
                 .foregroundStyle(.blue)
-                .padding(.top, 4)
+                .padding(.top, 8)
             }
-            .padding()
+            .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.regular, in: .rect(cornerRadius: 16))
-            .padding()
+            .glassEffect(.regular, in: .rect(cornerRadius: 20))
+            .padding(20)
         }
-        .frame(height: 250)
+        .padding(.horizontal, 16)
     }
     
     private var iconForSuggestion: String {

@@ -18,23 +18,35 @@ class ForYouViewModel: ObservableObject {
 struct ForYouView: View {
     @StateObject private var viewModel = ForYouViewModel()
     @State private var showProfile = false
+    let onPromptSelected: (String) -> Void
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(viewModel.suggestions) { suggestion in
-                        PromptCardView(suggestion: suggestion)
-                            .onTapGesture {
-                                // TODO: Navigate to Travel tab and send prompt
-                                print("Tapped: \(suggestion.title)")
-                            }
+            GeometryReader { geometry in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(viewModel.suggestions) { suggestion in
+                            PromptCardView(suggestion: suggestion)
+                                .frame(height: geometry.size.height) // Full screen height
+                                .containerRelativeFrame(.horizontal)
+                                .scrollTransition { content, phase in
+                                    content
+                                        .opacity(phase.isIdentity ? 1 : 0.8)
+                                        .scaleEffect(phase.isIdentity ? 1 : 0.95)
+                                }
+                                .onTapGesture {
+                                    // Send prompt to AI chat
+                                    onPromptSelected(suggestion.title)
+                                }
+                        }
                     }
+                    .scrollTargetLayout()
                 }
-                .padding()
+                .scrollTargetBehavior(.paging)
+                .scrollIndicators(.hidden)
             }
             .navigationTitle("For you")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showProfile = true }) {
@@ -62,5 +74,5 @@ struct ForYouView: View {
 }
 
 #Preview {
-    ForYouView()
+    ForYouView(onPromptSelected: { _ in })
 }

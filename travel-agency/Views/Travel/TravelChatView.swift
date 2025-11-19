@@ -3,19 +3,22 @@ import SwiftUI
 struct TravelChatView: View {
     @State private var messageText = ""
     @State private var messages: [ChatMessage] = []
+    @Binding var initialPrompt: String?
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isTextFieldFocused: Bool
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Messages area
-                ScrollView {
-                    LazyVStack(spacing: 16) {
+                GeometryReader { geometry in
+                    ScrollView {
                         if messages.isEmpty {
+                            // Centered empty state
                             VStack(spacing: 20) {
                                 Image(systemName: "airplane.departure")
                                     .font(.system(size: 60))
                                     .foregroundColor(.blue.opacity(0.5))
-                                    .padding(.top, 100)
                                 
                                 Text("Where would you like to go?")
                                     .font(.title2)
@@ -25,35 +28,64 @@ struct TravelChatView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
                         } else {
-                            ForEach(messages) { message in
-                                ChatBubbleView(message: message)
+                            LazyVStack(spacing: 16) {
+                                ForEach(messages) { message in
+                                    ChatBubbleView(message: message)
+                                }
                             }
+                            .padding()
                         }
                     }
-                    .padding()
+                    .scrollDismissesKeyboard(.interactively)
                 }
                 
-                // Input area
+                // Chat input bar
                 HStack(spacing: 12) {
-                    TextField("Ask about destinations, activities...", text: $messageText)
+                    TextField("Message your AI travel assistant...", text: $messageText)
                         .textFieldStyle(.plain)
                         .padding(12)
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(20)
+                        .submitLabel(.send)
+                        .focused($isTextFieldFocused)
+                        .onSubmit {
+                            sendMessage()
+                        }
                     
-                    Button(action: sendMessage) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(messageText.isEmpty ? .gray : .blue)
+                    if !messageText.isEmpty {
+                        Button(action: sendMessage) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.blue)
+                        }
+                        .transition(.scale.combined(with: .opacity))
                     }
-                    .disabled(messageText.isEmpty)
                 }
                 .padding()
                 .background(.ultraThinMaterial)
+                .animation(.spring(response: 0.3), value: messageText.isEmpty)
             }
-            .navigationTitle("Travel")
+            .navigationTitle("AI Travel Assistant")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .onChange(of: initialPrompt) { _, newPrompt in
+                if let prompt = newPrompt {
+                    messageText = prompt
+                    sendMessage()
+                    initialPrompt = nil  // Clear after sending
+                }
+            }
         }
     }
     
@@ -103,5 +135,5 @@ struct ChatBubbleView: View {
 }
 
 #Preview {
-    TravelChatView()
+    TravelChatView(initialPrompt: .constant(nil))
 }
