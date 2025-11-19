@@ -6,56 +6,74 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @State private var selectedTab = 0
+    @State private var previousTab = 0
+    @State private var promptToSend: String?
+    @State private var showChat = false
+    @State private var showProfile = false
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        TabView(selection: $selectedTab) {
+            Tab("For You", systemImage: "heart.fill", value: 0) {
+                ForYouView(
+                    onPromptSelected: { prompt in
+                        promptToSend = prompt
+                        showChat = true  // Open chat modal
                     }
-                }
-                .onDelete(perform: deleteItems)
+                )
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+            
+            Tab("Travel", systemImage: "airplane.departure", value: 1) {
+                SearchView()  // Pre-rolled trips / Explore feed
+            }
+            
+            // Separated tab - triggers action instead of navigating
+            Tab(value: 2, role: .search) {
+                // Empty view - we intercept the tap before it shows
+                Color.clear
+            } label: {
+                Label {
+                    Text("Chat")
+                } icon: {
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.blue, Color.blue.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Circle())
+                        .glassEffect(.regular, in: .circle)
                 }
             }
-        } detail: {
-            Text("Select an item")
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+        .tabBarMinimizeBehavior(.automatic)
+        .onChange(of: selectedTab) { oldValue, newValue in
+            // Intercept chat tab selection
+            if newValue == 2 {
+                showChat = true
+                // Revert to previous tab to prevent navigation
+                selectedTab = oldValue
+            } else {
+                previousTab = oldValue
             }
+        }
+        .fullScreenCover(isPresented: $showChat) {
+            TravelChatView(initialPrompt: $promptToSend)
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView()
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
+
