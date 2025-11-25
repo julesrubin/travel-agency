@@ -3,108 +3,198 @@ import SwiftUI
 struct TripDetailView: View {
     let trip: Trip
     @State private var selectedTab = 0
+    @State private var adaptiveGradient: LinearGradient?
     
-    // Destination-themed gradient
-    private var destinationGradient: LinearGradient {
-        let colors: [Color]
+    // Liquid Glass Modifier
+    struct LiquidGlass: ViewModifier {
+        var cornerRadius: CGFloat
         
-        switch trip.destination {
-        case let dest where dest.contains("Paris"):
-            colors = [.pink.opacity(0.6), .purple.opacity(0.5), .blue.opacity(0.4)]
-        case let dest where dest.contains("Rome"):
-            colors = [.orange.opacity(0.6), .red.opacity(0.5), .yellow.opacity(0.4)]
-        case let dest where dest.contains("Barcelona"):
-            colors = [.red.opacity(0.6), .orange.opacity(0.5), .yellow.opacity(0.4)]
-        case let dest where dest.contains("Tokyo"):
-            colors = [.pink.opacity(0.6), .red.opacity(0.5), .purple.opacity(0.4)]
-        case let dest where dest.contains("Bali"):
-            colors = [.green.opacity(0.6), .teal.opacity(0.5), .blue.opacity(0.4)]
-        default:
-            colors = [.blue.opacity(0.6), .purple.opacity(0.5), .indigo.opacity(0.4)]
+        func body(content: Content) -> some View {
+            content
+                .background(Material.ultraThin) // 1. The Blur/Material Base
+                .background(Color.white.opacity(0.5)) // 2. The Tint (Crucial for contrast)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [.white.opacity(0.6), .white.opacity(0.1), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 10) // 4. Soft Shadow
         }
-        
-        return LinearGradient(
-            colors: colors,
+    }
+    
+    var body: some View {
+        ZStack {
+            // Adaptive background extracted from trip image
+            (adaptiveGradient ?? fallbackGradient)
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Hero image with rounded corners
+                    if let image = trip.image {
+                        GeometryReader { geometry in
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geometry.size.width, height: 280)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                                .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
+                        }
+                        .frame(height: 280)
+                        .padding(.horizontal)
+                        .padding(.top, 20)
+                    } else {
+                        // Fallback icon if no image
+                        Image(systemName: "globe.europe.africa.fill")
+                            .font(.system(size: 100))
+                            .foregroundStyle(.white.opacity(0.95))
+                            .padding(.top, 60)
+                    }
+                    
+                    // Glass info card
+                    tripInfoCard
+                        .modifier(LiquidGlass(cornerRadius: 20))
+                        .padding(.horizontal)
+                    
+                    // Glass tabs
+                    customTabPicker
+                        .modifier(LiquidGlass(cornerRadius: 24))
+                        .padding(.horizontal)
+                    
+                    // Offer cards
+                    offerCardsSection
+                        .padding(.horizontal)
+                }
+                .padding(.vertical)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Trip Details")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+            }
+        }
+        .task {
+            // Extract colors when view appears
+            if let image = trip.image {
+                let colors = image.extractColorPalette()
+                adaptiveGradient = LinearGradient(
+                    colors: colors,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+    }
+    
+    private var fallbackGradient: LinearGradient {
+        LinearGradient(
+            colors: [.blue.opacity(0.6), .purple.opacity(0.5), .indigo.opacity(0.4)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
     
-    var body: some View {
-        ZStack {
-            // Immersive background with extension effect
-            destinationGradient
-                .ignoresSafeArea()
-                .backgroundExtensionEffect()
+    private var tripInfoCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(trip.destination)
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundColor(Color(uiColor: .darkGray))
             
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Hero section with glass effect
-                    VStack(spacing: 16) {
-                        // Large destination icon
-                        Image(systemName: "globe.europe.africa.fill")
-                            .font(.system(size: 80))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .padding(.top, 40)
-                        
-                        // Trip info card with glass effect
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(trip.destination)
-                                .font(.title)
-                                .fontWeight(.bold)
-                            
-                            HStack {
-                                Label(trip.duration, systemImage: "calendar")
-                                Spacer()
-                                Label(String(format: "%.1f", trip.rating), systemImage: "star.fill")
-                                    .foregroundColor(.yellow)
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            
-                            Text("€\(Int(trip.price))")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-                        .padding(.horizontal)
-                    }
-                    
-                    // Tabs
-                    Picker("Category", selection: $selectedTab) {
-                        Text("Flights").tag(0)
-                        Text("Hotels").tag(1)
-                        Text("Activities").tag(2)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    
-                    // Tab content
-                    VStack(spacing: 16) {
-                        switch selectedTab {
-                        case 0:
-                            OfferCardView(title: "Skyscanner", price: 350, type: "Flight")
-                            OfferCardView(title: "Google Flights", price: 380, type: "Flight")
-                        case 1:
-                            OfferCardView(title: "Booking.com", price: 120, type: "Hotel")
-                            OfferCardView(title: "Hotels.com", price: 135, type: "Hotel")
-                        case 2:
-                            OfferCardView(title: "Viator", price: 50, type: "Activity")
-                            OfferCardView(title: "GetYourGuide", price: 45, type: "Activity")
-                        default:
-                            EmptyView()
-                        }
-                    }
-                    .padding(.horizontal)
+            HStack(spacing: 20) {
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.secondary)
+                    Text(trip.duration)
+                        .foregroundColor(.primary)
                 }
-                .padding(.vertical)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .foregroundColor(.yellow)
+                    Text(String(format: "%.1f", trip.rating))
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                }
+                
+                Spacer()
+                
+                Text("€\(Int(trip.price))")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+            .font(.subheadline)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private var customTabPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(["Flights", "Hotels", "Activities"], id: \.self) { tab in
+                let index = ["Flights", "Hotels", "Activities"].firstIndex(of: tab) ?? 0
+                Button(action: { 
+                    withAnimation(.spring(response: 0.3)) {
+                        selectedTab = index
+                    }
+                }) {
+                    Text(tab)
+                        .font(.subheadline)
+                        .fontWeight(selectedTab == index ? .bold : .regular)
+                        .foregroundColor(selectedTab == index ? .white : .primary.opacity(0.7))
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            selectedTab == index ? 
+                            LinearGradient(
+                                colors: [Color.blue.opacity(0.8), Color.blue.opacity(0.6)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ) : LinearGradient(colors: [.clear], startPoint: .top, endPoint: .bottom)
+                        )
+                        .clipShape(Capsule())
+                        .overlay(
+                            selectedTab == index ?
+                            Capsule()
+                                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                            : nil
+                        )
+                }
             }
         }
-        .navigationTitle("Trip Details")
-        .navigationBarTitleDisplayMode(.inline)
+        .padding(4)
+    }
+    
+    private var offerCardsSection: some View {
+        VStack(spacing: 16) {
+            switch selectedTab {
+            case 0:
+                OfferCardView(title: "Skyscanner", price: 350, type: "Flight")
+                OfferCardView(title: "Google Flights", price: 380, type: "Flight")
+            case 1:
+                OfferCardView(title: "Booking.com", price: 120, type: "Hotel")
+                OfferCardView(title: "Hotels.com", price: 135, type: "Hotel")
+            case 2:
+                OfferCardView(title: "Viator", price: 50, type: "Activity")
+                OfferCardView(title: "GetYourGuide", price: 45, type: "Activity")
+            default:
+                EmptyView()
+            }
+        }
+        .animation(.easeInOut, value: selectedTab)
     }
 }
 
@@ -115,17 +205,22 @@ struct OfferCardView: View {
     @State private var isPressed = false
     
     var body: some View {
-        HStack {
-            // Icon based on type
-            Image(systemName: iconForType)
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .frame(width: 50, height: 50)
-                .glassEffect(.regular, in: .circle)
+        HStack(spacing: 16) {
+            // Glass icon with background
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.2))
+                    .frame(width: 60, height: 60)
+                
+                Image(systemName: iconForType)
+                    .font(.title2)
+                    .foregroundStyle(.primary) // Dark icon
+            }
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.headline)
+                    .foregroundColor(.primary)
                 
                 Text(type)
                     .font(.caption)
@@ -134,35 +229,35 @@ struct OfferCardView: View {
             
             Spacer()
             
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .trailing, spacing: 8) {
                 Text("€\(price)")
                     .font(.title3)
                     .fontWeight(.bold)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
                 
                 Button(action: {
                     // TODO: Open in SFSafariViewController
                     print("Book with \(title)")
                 }) {
                     Text("Book")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.headline) // Bolder font
                         .foregroundColor(.white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                         .background(.blue)
                         .clipShape(Capsule())
                 }
-                .scaleEffect(isPressed ? 0.95 : 1.0)
-                .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isPressed = pressing
-                    }
-                }, perform: {})
             }
         }
         .padding()
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        .modifier(TripDetailView.LiquidGlass(cornerRadius: 20))
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(.spring(response: 0.3), value: isPressed)
+        .onLongPressGesture(minimumDuration: .infinity, pressing: { pressing in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = pressing
+            }
+        }, perform: {})
     }
     
     private var iconForType: String {

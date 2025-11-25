@@ -40,7 +40,7 @@ struct CustomTabBar: View {
             .padding(.trailing, 16)
         }
         .frame(height: 70)
-        .background(.ultraThinMaterial)
+        .glassEffect(.regular, in: .rect(cornerRadius: 0))
     }
 }
 

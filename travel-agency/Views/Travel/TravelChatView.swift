@@ -64,7 +64,7 @@ struct TravelChatView: View {
                     }
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .glassEffect(.regular, in: .rect(cornerRadius: 0))
                 .animation(.spring(response: 0.3), value: viewModel.messageText.isEmpty)
             }
             .navigationTitle("AI Travel Assistant")

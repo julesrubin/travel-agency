@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 struct Trip: Identifiable, Codable {
     let id: UUID
@@ -7,6 +8,11 @@ struct Trip: Identifiable, Codable {
     let duration: String
     let imageName: String
     let rating: Double
+    
+    /// Returns the UIImage for this trip if available
+    var image: UIImage? {
+        UIImage(named: imageName)
+    }
     
     init(id: UUID = UUID(), destination: String, price: Double, duration: String, imageName: String, rating: Double) {
         self.id = id
